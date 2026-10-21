@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:rive/rive.dart';
+import 'dart:async'; //3.1 Importar el Timer
+
 class LoginScreen extends StatefulWidget {
   const new({super.key});
 
@@ -20,6 +22,34 @@ SMITrigger? _trigSuccess;
 SMITrigger? _trigFail;
 SMINumber? _numLook;
 
+//3.2 timer para detener el recorrido de la mirada
+Timer? _typingDebounce;
+
+//2.1 Creat variables para FocusNode
+final _emailFocus = FocusNode();
+final _passwordFocus = FocusNode();
+
+//2.2 crear los oyentes (listeners)
+@override
+void initState() {
+    super.initState();
+    _emailFocus.addListener((){
+    
+    if(_emailFocus.hasFocus){
+    if(_isHandsUp != null){
+      _isHandsUp?.change(false);
+      //3.3 Mirada neutral
+      _numLook?.value = 80.0;
+    }
+    }
+    });
+    _passwordFocus.addListener((){
+      //Manos arriba en password
+      _isHandsUp?.change(_passwordFocus.hasFocus);
+
+    });
+
+  }
 //error: > BottomOverFlowed = desbordamiento de 
 
   @override
@@ -62,16 +92,32 @@ SMINumber? _numLook;
                 SizedBox(height:10),
                 //email
                 TextField(
+                  //2.3 Asignar el focus al textfield
+                  focusNode: _emailFocus,
                   //1.5 Vincular a campo de texto
                   onChanged: (value){
                     if(_isHandsUp != null){
                       //No tapes los ojos al ver el email
-                      _isHandsUp!.change(false);
+                      //_isHandsUp!.change(false);
                     }
                     //Si isCheking es null
                     if(_isChecking == null) return;
                     //Activa el modo chismoso
                     _isChecking!.change(true);
+                    //3.4 Implementar recorrido de mirada
+                    //Ajuste de límites del 0 al 100
+                    //80 medidad de calibración
+                    final look =  (value.length / 80.0 * 100.0).clamp(0.0,100.0);
+                    _numLook?.value = look;
+                    //3.5 Debounce: si vuelve a teclear, reinicia el contador
+                    _typingDebounce?.cancel();
+                    //Crear nuevo timer
+                    _typingDebounce =  Timer(const Duration(seconds: 3), (){
+                      //si se cierra la pantalla, termina la ejecución
+                      if(!mounted) return;
+                      //Mirada nuetra / digamos que pasan los 3 segundos
+                      _isChecking?.change(false);
+                    }); //(duracion, callback)
                   },
                   decoration: InputDecoration(
                     hintText:"Email",
@@ -85,11 +131,13 @@ SMINumber? _numLook;
                 const  SizedBox(height: 10),
                 // contraseña
                 TextField(
+                  //2.3 Asignar el focus al textfield
+                  focusNode: _passwordFocus,
                   //1.5 Vincular a campo de texto
                   onChanged: (value){
                     if(_isChecking != null){
                       //No actives el modo chismoso
-                      _isChecking!.change(false);
+                      //_isChecking!.change(false);
                     }
                     //Si handsup no es null
                     if(_isHandsUp == null) return;
@@ -121,5 +169,15 @@ SMINumber? _numLook;
           )),
       )
     );
+  }
+  @override
+  @override
+  void dispose() {
+    //2.4 Liberar memoria/recurso en los focusNode
+    _emailFocus.dispose();
+    _passwordFocus.dispose();
+    //3.5 Liberar timer
+    _typingDebounce?.cancel();
+    super.dispose();
   }
 }

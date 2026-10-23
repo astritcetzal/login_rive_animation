@@ -39,7 +39,7 @@ void initState() {
     if(_isHandsUp != null){
       _isHandsUp?.change(false);
       //3.3 Mirada neutral
-      _numLook?.value = 80.0;
+      _numLook?.value = 50.0;
     }
     }
     });
@@ -83,7 +83,7 @@ void initState() {
                     _isHandsUp = _controller!.findSMI('isHandsUp');
                     _trigSuccess = _controller!.findSMI('trigSuccess');
                     _trigFail = _controller!.findSMI('trigFail');
-                    _numLook = _controller!.findSMI('isChecking');
+                    _numLook = _controller!.findSMI('numLook');
                   },
 
                   )

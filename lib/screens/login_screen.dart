@@ -117,7 +117,7 @@ class _LoginScreenState extends State<LoginScreen> {
       //5.8 Si Firebase rechaza el login, apagar loading y mostrar al osito triste
       setState(() {
         _isLoading = false;
-        passError = "Credenciales incorrectas en Firebase";
+        passError = "Invalid Firebase credentials";
       });
       _trigFail?.fire();
     }

@@ -39,6 +39,8 @@ class _LoginScreenState extends State<LoginScreen> {
   //4.2 Errores para mostrar en la UI
   String? emailError;
   String? passError;
+  //5.9 Error de credenciales: solo se muestra como texto rojo, sin marcar campos
+  String? authError;
 
   //5.2 Variable para mostrar el CircularProgressIndicador mientras carga
   bool _isLoading = false;
@@ -72,6 +74,7 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() {
       emailError = eError;
       passError = pError;
+      authError = null;
     });
 
     //4.8 Cerrar el teclado y bajar las manos
@@ -115,9 +118,11 @@ class _LoginScreenState extends State<LoginScreen> {
       );
     } catch (e) {
       //5.8 Si Firebase rechaza el login, apagar loading y mostrar al osito triste
+      //No se marca ningún campo en rojo: solo el texto "Credenciales no válidas"
+      if (!mounted) return;
       setState(() {
         _isLoading = false;
-        passError = "Invalid Firebase credentials";
+        authError = "Invalid Firebase credentials";
       });
       _trigFail?.fire();
     }
@@ -262,6 +267,21 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                 ),
+                //5.10 Mensaje de credenciales incorrectas (solo texto, sin marcar la casilla)
+                if (authError != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6, left: 12),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        authError!,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ),
                 const SizedBox(height:10),
                 SizedBox(
                   width: screenSize.width,

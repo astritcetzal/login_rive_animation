@@ -122,6 +122,141 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  //6.1 Recuperación de contraseña: envía un correo real con Firebase
+  Future<void> _showForgotPasswordDialog() async {
+    // Precargamos el correo que el usuario ya escribió en el Login
+    final resetCtrl = TextEditingController(text: emailCtrl.text.trim());
+    bool sending = false;
+    String? error;
+
+    // Mensaje genérico (OWASP): no revelamos si el correo está registrado
+    void showResetEmailSent() {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Te enviamos un enlace de recuperación. Revisa tu correo y la carpeta de spam.',
+          ),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            Future<void> sendReset() async {
+              final email = resetCtrl.text.trim();
+
+              // Validación mínima: campo no vacío y formato de correo
+              if (email.isEmpty) {
+                setDialogState(() => error = 'Ingresa tu correo.');
+                return;
+              }
+              final emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+              if (!emailRegex.hasMatch(email)) {
+                setDialogState(
+                  () => error = 'El correo no tiene un formato válido.',
+                );
+                return;
+              }
+
+              setDialogState(() {
+                sending = true;
+                error = null;
+              });
+
+              try {
+                await FirebaseAuth.instance.sendPasswordResetEmail(
+                  email: email,
+                );
+                if (!dialogContext.mounted) return;
+                Navigator.pop(dialogContext);
+                showResetEmailSent();
+              } on FirebaseAuthException catch (e) {
+                // user-not-found se trata como éxito para evitar enumeración
+                if (e.code == 'user-not-found') {
+                  if (!dialogContext.mounted) return;
+                  Navigator.pop(dialogContext);
+                  showResetEmailSent();
+                  return;
+                }
+                if (!dialogContext.mounted) return;
+                setDialogState(() {
+                  sending = false;
+                  if (e.code == 'invalid-email') {
+                    error = 'El correo no tiene un formato válido.';
+                  } else if (e.code == 'too-many-requests') {
+                    error = 'Demasiados intentos. Espera unos minutos.';
+                  } else {
+                    error = 'No pudimos enviar el enlace: ${e.message ?? e.code}';
+                  }
+                });
+              } catch (_) {
+                if (!dialogContext.mounted) return;
+                setDialogState(() {
+                  sending = false;
+                  error = 'No pudimos conectar con Firebase. Intenta de nuevo.';
+                });
+              }
+            }
+
+            return AlertDialog(
+              title: const Text('Recuperar contraseña'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Escribe tu correo y te enviaremos un enlace para '
+                    'restablecer tu contraseña.',
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: resetCtrl,
+                    enabled: !sending,
+                    autofocus: true,
+                    keyboardType: TextInputType.emailAddress,
+                    onSubmitted: (_) {
+                      if (!sending) sendReset();
+                    },
+                    decoration: InputDecoration(
+                      hintText: 'Email',
+                      prefixIcon: const Icon(Icons.email),
+                      errorText: error,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: sending ? null : () => Navigator.pop(dialogContext),
+                  child: const Text('Cancelar'),
+                ),
+                TextButton(
+                  onPressed: sending ? null : sendReset,
+                  child: sending
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Enviar'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    resetCtrl.dispose();
+  }
+
   //----
   //2.2 crear los oyentes (listeners)
   @override
@@ -278,25 +413,30 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                 const SizedBox(height: 10),
-                SizedBox(
-                  width: screenSize.width,
-                  child: const Text(
-                    "Forgot password?",
-                    style: TextStyle(decoration: TextDecoration.underline),
+                //6.2 Abrir el diálogo de recuperación de contraseña
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton(
+                    onPressed: _isLoading ? null : _showForgotPasswordDialog,
+                    style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                    child: const Text(
+                      "Forgot password?",
+                      style: TextStyle(decoration: TextDecoration.underline),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 10),
                 MaterialButton(
                   minWidth: screenSize.width,
                   height: 50,
-                  color: const Color.fromARGB(255, 70, 255, 64),
+                  color: const Color.fromARGB(255, 204, 248, 42),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                   onPressed: _isLoading ? null : _onLogin,
                   //5.9 Mostrar CircularProgressIndicador si está cargando, o el texto Login
                   child: _isLoading
-                      ? const CircularProgressIndicator(color: Colors.white)
+                      ? const CircularProgressIndicator(color: Color.fromARGB(255, 20, 152, 192))
                       : const Text(
                           "Login",
                           style: TextStyle(color: Colors.white, fontSize: 18),

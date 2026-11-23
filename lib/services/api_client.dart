@@ -1,17 +1,25 @@
 import 'dart:convert';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
 class ApiClient {
-  static const String backendUsername = 'Astrit Cetzal';
-  static const String backendPassword = '1234';
-  // Chrome / Windows: localhost. Celular: http://192.168.1.6:8090
-  static const String baseUrl = 'http://localhost:8090';
+  // Encapsulamiento: los getters leen el entorno de forma segura y centralizada
+  static String get baseUrl => dotenv.env['BASE_URL'] ?? 'http://localhost:8090';
+
+  static String get backendUsername => dotenv.env['BACKEND_USERNAME'] ?? '';
+
+  static String get _backendPassword => dotenv.env['BACKEND_PASSWORD'] ?? '';
 
   static String? _token;
 
   static Map<String, String> get _authHeaders => {
         if (_token != null) 'Authorization': 'Bearer $_token',
       };
+
+  // Método sobrecargado o directo que usa las credenciales del entorno
+  static Future<void> loginWithEnvCredentials() async {
+    await login(backendUsername, _backendPassword);
+  }
 
   static Future<void> login(String username, String password) async {
     final response = await http.post(
@@ -48,7 +56,7 @@ class ApiClient {
 
   static Future<List<dynamic>> getOrders() async {
     final response = await http.get(
-      Uri.parse('$baseUrl/Orders/'),
+      Uri.parse('$baseUrl/orders'),
       headers: _authHeaders,
     );
     return _decodeList(response);
@@ -63,7 +71,6 @@ class ApiClient {
     }
     throw Exception('El servidor respondió ${response.statusCode}');
   }
-
   static void logout() {
     _token = null;
   }

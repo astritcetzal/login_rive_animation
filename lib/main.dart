@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'screens/login_screen.dart';
-
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 Future<void> main() async {
   // Encender el puente nativo antes de usar Firebase
   WidgetsFlutterBinding.ensureInitialized();
 
+//cargar las variables desde .env
+await dotenv.load(fileName: 'assets/.env/.env');
   // Inicializar Firebase usando las credenciales de firebase_options.dart
   await Firebase.initializeApp(options: firebaseOptions);
 

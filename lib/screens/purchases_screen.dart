@@ -1,6 +1,5 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import '../services/api_client.dart';
 import '../widgets/error_view.dart';
 
 class PurchasesScreen extends StatefulWidget {
@@ -11,65 +10,34 @@ class PurchasesScreen extends StatefulWidget {
 }
 
 class _PurchasesScreenState extends State<PurchasesScreen> {
-  // URL base de la API de Spring Boot (puerto 8090)
-  // - Web / iOS Simulator / macOS: http://localhost:8090
-  // - Emulador Android: http://10.0.2.2:8090
-  // - Celular físico: http://IP_DE_TU_COMPUTADORA:8090
-  static const String baseUrl = 'http://localhost:8090';
-
   late Future<List<dynamic>> _purchasesFuture;
 
   @override
   void initState() {
     super.initState();
-    _purchasesFuture = fetchPurchases();
-  }
-
-  // GET /purchases/all
-  Future<List<dynamic>> fetchPurchases() async {
-    var response = await http.get(Uri.parse('$baseUrl/purchases/all'));
-
-    // Compatibilidad con el backend actual, que también expone /purchase/
-    if (response.statusCode == 404) {
-      response = await http.get(Uri.parse('$baseUrl/purchase/'));
-    }
-
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body) as List<dynamic>;
-    } else {
-      throw Exception('El servidor respondió ${response.statusCode}');
-    }
+    _purchasesFuture = ApiClient.getOrders();
   }
 
   void _retry() {
     setState(() {
-      _purchasesFuture = fetchPurchases();
+      _purchasesFuture = ApiClient.getOrders();
     });
   }
 
-  // Suma el total de los artículos de una compra.
+  // Suma el total de los artículos usando la llave correcta 'details'
   double _total(dynamic purchase) {
-    final items = purchase['items'];
-    if (items is! List) return 0;
+    final details = purchase['details'];
+    if (details is! List) return 0;
 
-    return items.fold<double>(0, (sum, item) {
+    return details.fold<double>(0, (sum, item) {
       final total = item is Map ? item['total'] : null;
       return sum + (double.tryParse(total?.toString() ?? '') ?? 0);
     });
   }
 
   int _itemCount(dynamic purchase) {
-    final items = purchase['items'];
-    return items is List ? items.length : 0;
-  }
-
-  String _formatDate(dynamic value) {
-    final date = DateTime.tryParse(value?.toString() ?? '');
-    if (date == null) return 'Sin fecha';
-
-    String two(int number) => number.toString().padLeft(2, '0');
-    return '${two(date.day)}/${two(date.month)}/${date.year} '
-        '${two(date.hour)}:${two(date.minute)}';
+    final details = purchase['details'];
+    return details is List ? details.length : 0;
   }
 
   String _text(dynamic value) {
@@ -81,7 +49,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Compras registradas'),
+        title: const Text('Pedidos registrados'),
         actions: [
           IconButton(
             tooltip: 'Actualizar',
@@ -99,7 +67,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
 
           if (snapshot.hasError) {
             return ErrorView(
-              message: 'No pudimos cargar las compras.\n'
+              message: 'No pudimos cargar los pedidos.\n'
                   'Verifica que el servidor esté encendido.',
               onRetry: _retry,
             );
@@ -121,7 +89,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      'Todavía no hay compras registradas',
+                      'Todavía no hay pedidos registrados',
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
@@ -138,7 +106,6 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
               final purchase = purchases[index];
               return _PurchaseCard(
                 purchase: purchase,
-                date: _formatDate(purchase['date']),
                 total: _total(purchase),
                 itemCount: _itemCount(purchase),
                 text: _text,
@@ -154,14 +121,12 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
 class _PurchaseCard extends StatelessWidget {
   const _PurchaseCard({
     required this.purchase,
-    required this.date,
     required this.total,
     required this.itemCount,
     required this.text,
   });
 
   final dynamic purchase;
-  final String date;
   final double total;
   final int itemCount;
   final String Function(dynamic value) text;
@@ -189,7 +154,7 @@ class _PurchaseCard extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Compra #${purchase['purchaseId'] ?? 's/n'}',
+                    'Pedido #${purchase['orderId'] ?? 's/n'}',
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -211,9 +176,9 @@ class _PurchaseCard extends StatelessWidget {
               value: text(purchase['clientId']),
             ),
             _InfoRow(
-              icon: Icons.calendar_today_outlined,
-              label: 'Fecha',
-              value: date,
+              icon: Icons.table_restaurant_outlined,
+              label: 'Mesa',
+              value: text(purchase['tableId']),
             ),
             _InfoRow(
               icon: Icons.payments_outlined,
@@ -225,17 +190,6 @@ class _PurchaseCard extends StatelessWidget {
               label: 'Artículos',
               value: itemCount.toString(),
             ),
-            _InfoRow(
-              icon: Icons.flag_outlined,
-              label: 'Estado',
-              value: text(purchase['state']),
-            ),
-            if ((purchase['comment']?.toString().trim() ?? '').isNotEmpty)
-              _InfoRow(
-                icon: Icons.comment_outlined,
-                label: 'Comentario',
-                value: text(purchase['comment']),
-              ),
           ],
         ),
       ),

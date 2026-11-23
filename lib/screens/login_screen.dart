@@ -5,7 +5,7 @@ import 'dart:async'; //3.1 Importar el Timer
 //5.1 Importar Firebase Auth y la pantalla de productos
 import 'package:firebase_auth/firebase_auth.dart';
 import 'products_screen.dart';
-
+import 'signup_screen.dart';
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -94,10 +94,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     // 2) Login en el backend del restaurante con las credenciales configuradas
     try {
-      await ApiClient.login(
-        ApiClient.backendUsername,
-        ApiClient.backendPassword,
-      );
+      await ApiClient.loginWithEnvCredentials();
     } catch (e) {
       debugPrint('Error en login de Spring Boot: $e');
       if (!mounted) return;
@@ -292,7 +289,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 MaterialButton(
                   minWidth: screenSize.width,
                   height: 50,
-                  color: Colors.amberAccent,
+                  color: const Color.fromARGB(255, 70, 255, 64),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -314,11 +311,16 @@ class _LoginScreenState extends State<LoginScreen> {
                       Text("Don't have an account?"),
                       const SizedBox(width: 10),
                       TextButton(
-                        onPressed: () {},
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_)=> const SignUpScreen()),
+                          );
+                        },
                         child: Text(
                           "Register",
                           style: TextStyle(
-                            color: Color.fromARGB(255, 255, 139, 45),
+                            color: Color.fromARGB(255, 255, 45, 220),
                             fontWeight: FontWeight.bold,
                             decoration: TextDecoration.underline,
                           ),

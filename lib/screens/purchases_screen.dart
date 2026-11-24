@@ -10,6 +10,10 @@ class PurchasesScreen extends StatefulWidget {
 }
 
 class _PurchasesScreenState extends State<PurchasesScreen> {
+  static const Color _bgCream = Color(0xFFFDFBF9);
+  static const Color _espresso = Color(0xFF331B24);
+  static const Color _titleDark = Color(0xFF1E1E1E);
+
   late Future<List<dynamic>> _purchasesFuture;
 
   @override
@@ -48,13 +52,29 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: _bgCream,
       appBar: AppBar(
-        title: const Text('Pedidos registrados'),
+        backgroundColor: _bgCream,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        foregroundColor: _espresso,
+        title: const Text(
+          'Pedidos registrados',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: _titleDark,
+          ),
+        ),
         actions: [
-          IconButton(
-            tooltip: 'Actualizar',
-            icon: const Icon(Icons.refresh),
-            onPressed: _retry,
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: IconButton(
+              tooltip: 'Actualizar',
+              icon: const Icon(Icons.refresh_rounded, color: _espresso),
+              onPressed: _retry,
+            ),
           ),
         ],
       ),
@@ -62,7 +82,9 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
         future: _purchasesFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(
+              child: CircularProgressIndicator(color: _espresso),
+            );
           }
 
           if (snapshot.hasError) {
@@ -76,34 +98,20 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
           final purchases = snapshot.data ?? [];
 
           if (purchases.isEmpty) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.shopping_bag_outlined,
-                      size: 80,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Todavía no hay pedidos registrados',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                  ],
-                ),
-              ),
-            );
+            return const _EmptyPurchasesView();
           }
 
-          return ListView.builder(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            itemCount: purchases.length,
+          return ListView.separated(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+            itemCount: purchases.length + 1,
+            separatorBuilder: (_, index) =>
+                SizedBox(height: index == 0 ? 16 : 12),
             itemBuilder: (context, index) {
-              final purchase = purchases[index];
+              if (index == 0) {
+                return _PurchasesHeaderBanner(orderCount: purchases.length);
+              }
+
+              final purchase = purchases[index - 1];
               return _PurchaseCard(
                 purchase: purchase,
                 total: _total(purchase),
@@ -118,6 +126,71 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
   }
 }
 
+class _PurchasesHeaderBanner extends StatelessWidget {
+  const _PurchasesHeaderBanner({required this.orderCount});
+
+  static const Color _softBlue = Color(0xFFE3F2FD);
+  static const Color _espresso = Color(0xFF331B24);
+  static const Color _titleDark = Color(0xFF1E1E1E);
+
+  final int orderCount;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+      decoration: BoxDecoration(
+        color: _softBlue,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 56,
+            height: 56,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.receipt_long_rounded,
+              size: 28,
+              color: _espresso,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Resumen de Pedidos',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color: _titleDark,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '$orderCount ${orderCount == 1 ? 'pedido registrado' : 'pedidos registrados'}',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: _espresso.withValues(alpha: 0.75),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _PurchaseCard extends StatelessWidget {
   const _PurchaseCard({
     required this.purchase,
@@ -126,6 +199,10 @@ class _PurchaseCard extends StatelessWidget {
     required this.text,
   });
 
+  static const Color _pastelIceBlue = Color(0xFFEAF2F8);
+  static const Color _espresso = Color(0xFF331B24);
+  static const Color _titleDark = Color(0xFF1E1E1E);
+
   final dynamic purchase;
   final double total;
   final int itemCount;
@@ -133,10 +210,11 @@ class _PurchaseCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+    return Container(
+      decoration: BoxDecoration(
+        color: _pastelIceBlue,
+        borderRadius: BorderRadius.circular(20),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -144,51 +222,79 @@ class _PurchaseCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                CircleAvatar(
-                  backgroundColor: theme.colorScheme.primaryContainer,
+                const CircleAvatar(
+                  radius: 20,
+                  backgroundColor: _espresso,
                   child: Icon(
-                    Icons.receipt_long,
-                    color: theme.colorScheme.onPrimaryContainer,
+                    Icons.receipt_long_rounded,
+                    color: Colors.white,
+                    size: 20,
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     'Pedido #${purchase['orderId'] ?? 's/n'}',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: _titleDark,
                     ),
                   ),
                 ),
                 Text(
                   '\$${total.toStringAsFixed(2)}',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.primary,
+                  style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                    color: _espresso,
                   ),
                 ),
               ],
             ),
-            const Divider(height: 20),
-            _InfoRow(
-              icon: Icons.person_outline,
-              label: 'Cliente',
-              value: text(purchase['clientId']),
+            Divider(
+              height: 24,
+              thickness: 1,
+              color: _espresso.withValues(alpha: 0.08),
             ),
-            _InfoRow(
-              icon: Icons.table_restaurant_outlined,
-              label: 'Mesa',
-              value: text(purchase['tableId']),
+            Row(
+              children: [
+                Expanded(
+                  child: _InfoTile(
+                    icon: Icons.person_outline_rounded,
+                    label: 'Cliente',
+                    value: text(purchase['clientId']),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _InfoTile(
+                    icon: Icons.table_restaurant_outlined,
+                    label: 'Mesa',
+                    value: text(purchase['tableId']),
+                  ),
+                ),
+              ],
             ),
-            _InfoRow(
-              icon: Icons.payments_outlined,
-              label: 'Pago',
-              value: text(purchase['paymentMethod']),
-            ),
-            _InfoRow(
-              icon: Icons.inventory_2_outlined,
-              label: 'Artículos',
-              value: itemCount.toString(),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: _InfoTile(
+                    icon: Icons.payments_outlined,
+                    label: 'Método de pago',
+                    value: text(purchase['paymentMethod']),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _InfoTile(
+                    icon: Icons.inventory_2_outlined,
+                    label: 'Artículos',
+                    value: itemCount.toString(),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -197,12 +303,16 @@ class _PurchaseCard extends StatelessWidget {
   }
 }
 
-class _InfoRow extends StatelessWidget {
-  const _InfoRow({
+class _InfoTile extends StatelessWidget {
+  const _InfoTile({
     required this.icon,
     required this.label,
     required this.value,
   });
+
+  static const Color _espresso = Color(0xFF331B24);
+  static const Color _titleDark = Color(0xFF1E1E1E);
+  static const Color _mutedGray = Color(0xFF6E6E73);
 
   final IconData icon;
   final String label;
@@ -210,28 +320,84 @@ class _InfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 2),
+          child: Icon(
+            icon,
+            size: 16,
+            color: _espresso.withValues(alpha: 0.7),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: _mutedGray,
+                ),
+              ),
+              const SizedBox(height: 1),
+              Text(
+                value,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: _titleDark,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 18, color: theme.colorScheme.outline),
-          const SizedBox(width: 8),
-          SizedBox(
-            width: 80,
-            child: Text(
-              label,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.outline,
+class _EmptyPurchasesView extends StatelessWidget {
+  const _EmptyPurchasesView();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: const BoxDecoration(
+                color: Color(0xFFE3F2FD),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.receipt_long_rounded,
+                size: 48,
+                color: Color(0xFF331B24),
               ),
             ),
-          ),
-          Expanded(
-            child: Text(value, style: theme.textTheme.bodyMedium),
-          ),
-        ],
+            const SizedBox(height: 16),
+            const Text(
+              'Todavía no hay pedidos registrados',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF1E1E1E),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -2,6 +2,14 @@ import 'dart:convert';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
+class ApiForbiddenException implements Exception {
+  ApiForbiddenException(this.message);
+  final String message;
+
+  @override
+  String toString() => message;
+}
+
 class ApiClient {
   // Encapsulamiento: los getters leen el entorno de forma segura y centralizada
   static String get baseUrl => dotenv.env['BASE_URL'] ?? 'http://localhost:8090';
@@ -14,6 +22,11 @@ class ApiClient {
 
   static Map<String, String> get _authHeaders => {
         if (_token != null) 'Authorization': 'Bearer $_token',
+      };
+
+  static Map<String, String> get _jsonAuthHeaders => {
+        'Content-Type': 'application/json',
+        ..._authHeaders,
       };
 
   // Método sobrecargado o directo que usa las credenciales del entorno
@@ -60,6 +73,51 @@ class ApiClient {
       headers: _authHeaders,
     );
     return _decodeList(response);
+  }
+
+  static Future<dynamic> createProduct(Map<String, dynamic> body) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/products'),
+      headers: _jsonAuthHeaders,
+      body: jsonEncode(body),
+    );
+    return _decodeMutationResponse(response);
+  }
+
+  static Future<dynamic> updateProduct(
+    int id,
+    Map<String, dynamic> body,
+  ) async {
+    final response = await http.put(
+      Uri.parse('$baseUrl/products/$id'),
+      headers: _jsonAuthHeaders,
+      body: jsonEncode(body),
+    );
+    return _decodeMutationResponse(response);
+  }
+
+  static Future<void> deleteProduct(int id) async {
+    final response = await http.delete(
+      Uri.parse('$baseUrl/products/$id'),
+      headers: _authHeaders,
+    );
+    _decodeMutationResponse(response);
+  }
+
+  static dynamic _decodeMutationResponse(http.Response response) {
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      if (response.body.trim().isEmpty) return null;
+      return jsonDecode(response.body);
+    }
+    if (response.statusCode == 403) {
+      throw ApiForbiddenException(
+        'No tienes permisos de administrador para modificar el menú',
+      );
+    }
+    if (response.statusCode == 401) {
+      throw Exception('Sesión no autorizada. Vuelve a iniciar sesión.');
+    }
+    throw Exception('El servidor respondió ${response.statusCode}');
   }
 
   static List<dynamic> _decodeList(http.Response response) {
